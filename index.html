@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#05070f">
+<title>中秋快乐 · 千里共婵娟</title>
+
+<!-- ================================================================
+     中秋 · v2（互动加强版）
+     单文件 / 零依赖 / 不联网也能跑
+     新增：粒子拼字 · 星轨绘制 · 三档主题 · 孔明灯许愿 · 摇一摇 ·
+           小兔彩蛋 · 一键生成贺卡
+================================================================= -->
+<style>
+  :root{
+    /* 主题色（切主题时被 JS 改掉） */
+    --c1:#fff6dc; --c2:#ffdc8a; --c3:#a8752c;
+    --accent:#ffd98a; --muted:#b39a6a; --ink:#f3e6c8;
+    --card-bg:linear-gradient(160deg,rgba(255,236,190,.09),rgba(255,236,190,.03));
+    --card-line:rgba(255,215,140,.22);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;height:100dvh;overflow:hidden;background:#05070f;overscroll-behavior:none}
+  body{
+    font-family:"Songti SC","STSong","SimSun","PingFang SC","Microsoft YaHei",serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;
+    transition:color .6s;
+  }
+  #sky{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;touch-action:none}
+  button{touch-action:manipulation}
+  .vignette{
+    position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 34%,rgba(0,0,0,.34) 72%,rgba(2,4,10,.66) 100%);
+  }
+
+  /* ---------- 主内容 ---------- */
+  .stage{
+    position:relative;z-index:2;height:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:28px 20px calc(96px + env(safe-area-inset-bottom));
+    text-align:center;touch-action:manipulation;
+  }
+  .eyebrow{font-size:12px;letter-spacing:.5em;color:var(--muted);margin-bottom:16px;padding-left:.5em;transition:.6s}
+  h1{
+    font-size:clamp(42px,10.5vw,80px);letter-spacing:.14em;padding-left:.14em;
+    font-weight:600;line-height:1.1;
+    background:linear-gradient(180deg,var(--c1) 0%,var(--c2) 45%,var(--c3) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 6px 30px rgba(255,190,90,.28));transition:.6s;
+  }
+  .date{margin-top:12px;font-size:12.5px;letter-spacing:.32em;color:var(--muted);padding-left:.32em;transition:.6s}
+
+  .poem{
+    margin-top:24px;min-height:2.4em;font-size:clamp(14px,4vw,18px);line-height:1.9;
+    color:var(--accent);letter-spacing:.06em;opacity:.85;
+    transition:opacity 1.2s ease,color .6s;text-shadow:0 2px 18px rgba(0,0,0,.7);
+  }
+  .poem small{display:block;margin-top:6px;font-size:11.5px;color:var(--muted);letter-spacing:.15em}
+
+  /* ---------- 玻璃卡片 ---------- */
+  .card{
+    margin-top:26px;width:min(440px,100%);padding:22px 20px;border-radius:20px;
+    background:var(--card-bg);border:1px solid var(--card-line);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+    transition:.6s;
+  }
+  .card label{display:block;font-size:12.5px;color:var(--muted);letter-spacing:.12em;margin-bottom:11px}
+  .row{display:flex;gap:10px}
+  input{
+    flex:1;min-width:0;padding:13px 15px;border-radius:12px;
+    background:rgba(255,255,255,.06);border:1px solid var(--card-line);
+    color:#fff7e2;font-size:16px;font-family:inherit;outline:none;transition:.25s;
+  }
+  input::placeholder{color:#7a6b52}
+  input:focus{border-color:var(--accent);background:rgba(255,255,255,.1)}
+  button{
+    flex-shrink:0;cursor:pointer;font-family:inherit;padding:13px 18px;border-radius:12px;border:none;
+    font-size:15px;letter-spacing:.06em;color:#2a1c05;font-weight:600;
+    background:linear-gradient(135deg,#ffe1a0,#f0b95a 55%,#d99b3c);
+    box-shadow:0 8px 26px rgba(240,185,90,.32);transition:.25s;
+  }
+  button:hover{transform:translateY(-2px)}
+  button:active{transform:translateY(0) scale(.98)}
+
+  .wish{
+    margin-top:22px;width:min(560px,100%);font-size:clamp(15px,4.2vw,19px);line-height:2;
+    color:#fff8e6;letter-spacing:.04em;text-shadow:0 3px 22px rgba(0,0,0,.85);min-height:0;
+  }
+  .wish .caret{display:inline-block;width:2px;height:1em;vertical-align:-.15em;background:var(--accent);margin-left:3px;animation:blink .8s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .seal{
+    margin-top:18px;width:70px;height:70px;border-radius:8px;
+    background:linear-gradient(135deg,#c02a2a,#8e1a1a);color:#ffeaea;
+    font-size:25px;line-height:1.1;display:flex;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 6px 24px rgba(190,40,40,.45),inset 0 0 0 2px rgba(255,220,220,.35);
+    opacity:0;transform:scale(1.7) rotate(-18deg);
+    transition:opacity .35s ease,transform .55s cubic-bezier(.2,1.5,.4,1);
+  }
+  .seal.on{opacity:.92;transform:scale(1) rotate(-8deg)}
+
+  /* 点亮祝福后：输入卡收起来（只留第一次），换成一行低调的「再来一句」 */
+  .card.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;margin-top:0;border-width:0;overflow:hidden;pointer-events:none}
+  .again{
+    margin-top:14px;font-size:12.5px;letter-spacing:.18em;color:var(--muted);
+    cursor:pointer;opacity:0;visibility:hidden;transition:.4s;user-select:none;
+  }
+  .again.on{opacity:.7;visibility:visible}
+  .again:active{opacity:1}
+
+  /* ---------- 底部工具条 ---------- */
+  .tools{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(14px + env(safe-area-inset-bottom));z-index:4;
+    display:flex;gap:8px;padding:8px 10px;border-radius:999px;
+    background:rgba(10,14,26,.5);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  }
+  .tools button{
+    width:42px;height:42px;padding:0;border-radius:50%;font-size:18px;font-weight:400;
+    background:rgba(255,235,190,.07);color:#e8d3a4;border:1px solid rgba(255,215,140,.18);
+    box-shadow:none;display:flex;align-items:center;justify-content:center;
+  }
+  .tools button:hover{background:rgba(255,235,190,.16);transform:none}
+  .tools button.on{background:linear-gradient(135deg,#ffe1a0,#e0a54a);color:#2a1c05;border-color:transparent}
+
+  .hint{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(70px + env(safe-area-inset-bottom));z-index:3;
+    font-size:11.5px;color:#6d5f47;letter-spacing:.16em;white-space:nowrap;
+    pointer-events:none;transition:opacity .5s;
+  }
+  body.pure .stage>*:not(h1):not(.poem),
+  body.pure .hint{display:none}
+  /* 纯净模式下：工具条只留「眼睛」，不然就把自己锁在外面了 */
+  body.pure .tools{opacity:.5}
+  body.pure .tools button:not(#btnPure){display:none}
+  body.pure .stage{justify-content:center}
+  body.pure h1{font-size:clamp(56px,16vw,120px)}
+
+  /* ---------- 弹窗 ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    padding:22px;background:rgba(3,6,12,.72);backdrop-filter:blur(6px);
+    opacity:0;visibility:hidden;transition:.25s;
+  }
+  .modal.on{opacity:1;visibility:visible}
+  /* 手机上软键盘会把居中的框顶到看不见的地方 → 改成贴上部 */
+  @media (max-width:520px), (max-height:620px){
+    .modal{align-items:flex-start;padding-top:8vh}
+    .modal .box{max-height:72vh}
+  }
+  .modal .box{
+    width:min(430px,100%);max-height:86vh;overflow:auto;padding:22px 20px;border-radius:20px;text-align:center;
+    background:linear-gradient(160deg,rgba(30,40,60,.92),rgba(12,18,30,.95));
+    border:1px solid rgba(255,215,140,.25);box-shadow:0 24px 70px rgba(0,0,0,.6);
+    transform:scale(.96);transition:.25s;
+  }
+  .modal.on .box{transform:none}
+  .modal h3{font-size:17px;font-weight:400;letter-spacing:.14em;margin-bottom:16px;color:#ffe9b8}
+  .modal .btns{display:flex;gap:10px;margin-top:16px}
+  .modal .btns button{flex:1;font-size:14px;padding:11px}
+  .modal .ghost{background:rgba(255,255,255,.08);color:#e6d5ae;border:1px solid rgba(255,255,255,.16);box-shadow:none}
+  .modal img{width:min(280px,72vw);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.6);margin-bottom:12px}
+  .modal .tip{font-size:11.5px;color:#8d8ea6;letter-spacing:.06em;line-height:1.7}
+
+  /* ---------- 开场 ---------- */
+  .intro{
+    position:fixed;inset:0;z-index:30;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+    background:radial-gradient(ellipse at 50% 45%,#0d1428 0%,#05070f 70%);
+    transition:opacity 1s ease,visibility 1s;
+  }
+  .intro.hide{opacity:0;visibility:hidden}
+  .intro-moon{
+    width:80px;height:80px;border-radius:50%;
+    background:radial-gradient(circle at 36% 32%,#fff7e0,#ffdc93 45%,#d8a94e 78%,#9c7429 100%);
+    box-shadow:0 0 60px 12px rgba(255,205,110,.35),0 0 140px 40px rgba(255,180,80,.12);
+    animation:breathe 3.6s ease-in-out infinite;
+  }
+  @keyframes breathe{50%{transform:scale(1.07);box-shadow:0 0 80px 18px rgba(255,205,110,.5),0 0 180px 60px rgba(255,180,80,.18)}}
+  .intro h2{font-size:19px;letter-spacing:.4em;color:#e9d6a8;font-weight:400;padding-left:.4em}
+  .intro p{font-size:12.5px;letter-spacing:.3em;color:#7d6c50;padding-left:.3em;animation:blink 2s ease-in-out infinite}
+
+  /* ---------- 轻提示 ---------- */
+  .toast{
+    position:fixed;left:50%;top:12%;transform:translate(-50%,-10px);z-index:25;
+    padding:9px 18px;border-radius:999px;font-size:13px;letter-spacing:.06em;
+    background:rgba(20,28,44,.86);color:#ffe9b8;border:1px solid rgba(255,215,140,.3);
+    backdrop-filter:blur(10px);opacity:0;transition:.3s;pointer-events:none;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:520px){
+    .stage{padding:20px 16px calc(88px + env(safe-area-inset-bottom))}
+    .eyebrow{margin-bottom:10px;font-size:11px}
+    .date{margin-top:8px}
+    .poem{margin-top:14px;line-height:1.75}
+    .card{margin-top:18px;padding:16px 14px;border-radius:16px}
+    .card label{font-size:11.5px;margin-bottom:9px}
+    .row{flex-direction:column;gap:8px}
+    input{padding:12px 14px;font-size:16px}   /* 16px 才不会触发 iOS 自动缩放 */
+    button{width:100%;padding:12px}
+    .seal{width:60px;height:60px;font-size:21px;margin-top:14px}
+    .wish{margin-top:16px;line-height:1.85}
+    .tools{gap:7px;padding:7px 9px}
+    .tools button{width:40px;height:40px;font-size:17px}
+    .hint{bottom:calc(66px + env(safe-area-inset-bottom));font-size:10.5px;letter-spacing:.1em}
+    .again{margin-top:10px;font-size:12px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.15s!important}}
+</style>
+</head>
+
+<body>
+  <canvas id="sky"></canvas>
+  <div class="vignette"></div>
+
+  <main class="stage">
+    <div class="eyebrow">Mid-Autumn Festival</div>
+    <h1>中秋快乐</h1>
+    <div class="date">2026 · 八月十五</div>
+    <div class="poem" id="poem"></div>
+
+    <div class="card" id="card">
+      <label>写上 TA 的名字，为 TA 点亮一轮月亮</label>
+      <div class="row">
+        <input id="nameInput" maxlength="12" placeholder="名字（留空也可以）" autocomplete="off">
+        <button id="btnWish">点亮祝福</button>
+      </div>
+    </div>
+
+    <div class="wish" id="wish"></div>
+    <div class="again" id="again">✨ 再来一句</div>
+    <div class="seal" id="seal">中秋</div>
+  </main>
+
+  <div class="hint" id="hint">拖动＝画星轨 · 点击＝放烟花 · 点孔明灯许愿</div>
+
+
+  <div class="tools">
+    <button id="btnSound"   title="声音">🔇</button>
+    <button id="btnTheme"   title="换主题">🎨</button>
+    <button id="btnLantern" title="放孔明灯">🏮</button>
+    <button id="btnCard"    title="生成贺卡">📸</button>
+    <button id="btnPure"    title="纯净模式">👁</button>
+  </div>
+
+  <!-- 通用弹窗 -->
+  <div class="modal" id="modal">
+    <div class="box" id="modalBox"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="intro" id="intro">
+    <div class="intro-moon"></div>
+    <h2>今夜月色很好</h2>
+    <p>点击进入</p>
+  </div>
+
+<script>
+/* ================================================================
+   0 · 工具
+================================================================ */
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[(Math.random() * a.length) | 0];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const TAU = Math.PI * 2;
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1900);
+}
+
+/* ================================================================
+   1 · 画布
+================================================================ */
+const cv = $('sky'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize() {                       // 只改画布尺寸，绝不重排世界
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+/* 手机三连坑：点灯 → 弹许愿框 → 软键盘顶起 → 触发 resize → 世界被重排（灯全重生）。
+   对策：resize 去抖 + 认出“正在输入” + 小高度抖动直接忽略 */
+let rsTimer = null, lastW = 0, lastH = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(() => {
+    const oldH = H;
+    resize();
+    const ae = document.activeElement;
+    const typing = !!ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName || '');
+    const wChanged = Math.abs(W - lastW) > 24;
+    const hChanged = Math.abs(H - oldH) > 140;      // 键盘/地址栏的抖动 → 不算
+    if (!typing && (wChanged || hChanged)) layout();
+    lastW = W; lastH = H;
+  }, 200);
+});
+
+/* ================================================================
+   2 · 主题（三档，切了连整个配色一起变）
+================================================================ */
+const THEMES = [
+  { id: 'gold', label: '鎏金',
+    bg: ['#0a1024', '#0b1120', '#04060d'],
+    halo: '255,225,150', moon: ['#fffdf3', '#ffefc4', '#f2cf87', '#d8ab5c'],
+    spot: '150,120,70', cloud: '255,240,215', lantern: '255,206,120',
+    petal: '#ffd98a', pal: ['#ffe9b0', '#ffd166', '#ff9aa2', '#a8e6ff'],
+    css: { c1: '#fff6dc', c2: '#ffdc8a', c3: '#a8752c', accent: '#ffd98a', muted: '#b39a6a', ink: '#f3e6c8',
+           bg: 'linear-gradient(160deg,rgba(255,236,190,.09),rgba(255,236,190,.03))', line: 'rgba(255,215,140,.22)' } },
+  { id: 'cyan', label: '青蓝',
+    bg: ['#04121c', '#061a26', '#02080e'],
+    halo: '160,240,255', moon: ['#f6ffff', '#d6f4ff', '#9ddcf5', '#5aa6c8'],
+    spot: '70,120,150', cloud: '210,245,255', lantern: '150,235,255',
+    petal: '#a8ecff', pal: ['#d6f6ff', '#8fe3ff', '#7dffd4', '#ffe9b0'],
+    css: { c1: '#eafcff', c2: '#9fe6ff', c3: '#3d86ad', accent: '#9fe6ff', muted: '#6f9cb3', ink: '#e3f4ff',
+           bg: 'linear-gradient(160deg,rgba(160,230,255,.10),rgba(160,230,255,.03))', line: 'rgba(150,225,255,.25)' } },
+  { id: 'plum', label: '霓紫',
+    bg: ['#150a20', '#1b0d2a', '#08040f'],
+    halo: '255,180,240', moon: ['#fff4ff', '#ffdcf6', '#e3a8e0', '#9a6bb5'],
+    spot: '130,80,140', cloud: '255,225,250', lantern: '255,170,225',
+    petal: '#ffbfe6', pal: ['#ffd9f2', '#ff9ad5', '#c9a6ff', '#ffe9b0'],
+    css: { c1: '#fff0ff', c2: '#ffb8ea', c3: '#8f52a8', accent: '#ffb8ea', muted: '#a583ad', ink: '#f8e9ff',
+           bg: 'linear-gradient(160deg,rgba(255,200,245,.10),rgba(255,200,245,.03))', line: 'rgba(255,180,240,.25)' } }
+];
+let theme = THEMES[0];
+function applyTheme(i) {
+  theme = THEMES[i % THEMES.length];
+  const s = document.documentElement.style;
+  s.setProperty('--c1', theme.css.c1); s.setProperty('--c2', theme.css.c2); s.setProperty('--c3', theme.css.c3);
+  s.setProperty('--accent', theme.css.accent); s.setProperty('--muted', theme.css.muted); s.setProperty('--ink', theme.css.ink);
+  s.setProperty('--card-bg', theme.css.bg); s.setProperty('--card-line', theme.css.line);
+  toast('主题：' + theme.label);
+}
+
+/* ================================================================
+   3 · 场景状态
+================================================================ */
+let stars = [], clouds = [], lanterns = [], petals = [], sparks = [], trail = [], texts = [];
+let rabbit = { on: false, x: 0, baseY: 0, v: 0, t: 0, dir: 1 };
+let moon = { x: 0, y: 0, r: 90, pop: 0 };
+let pointer = { x: 0, y: 0 }, view = { x: 0, y: 0 };
+let layoutH = 0;                          // 上次重排时的屏幕高
+
+function layout() {
+  moon.r = clamp(Math.min(W, H) * 0.13, 54, 130);
+  moon.x = W * (W > 760 ? 0.76 : 0.74);
+  moon.y = H * (W > 760 ? 0.24 : 0.19);
+
+  stars = [];
+  const n = Math.round(clamp((W * H) / 8200, 130, 300));
+  for (let i = 0; i < n; i++) stars.push({
+    x: Math.random() * W, y: Math.random() * H, r: rand(0.4, 1.5),
+    a: rand(0.25, 0.9), ph: rand(0, TAU), sp: rand(0.4, 1.6), d: rand(0.2, 1)
+  });
+
+  clouds = [];
+  for (let i = 0; i < 7; i++) clouds.push({
+    x: rand(-W * 0.3, W * 1.2), y: rand(H * 0.05, H * 0.62),
+    w: rand(W * 0.35, W * 0.95), h: rand(24, 68),
+    v: rand(3, 10) * (i < 3 ? 0.5 : 1), a: rand(0.05, 0.13), wob: rand(0, TAU)
+  });
+
+  // 孔明灯：只在第一次播种；之后重排绝不清空
+  // （手机键盘一顶就 resize，用户刚放的那批灯就没了 —— 就是这个问题）
+  if (!lanterns.length) {
+    for (let i = 0; i < 9; i++) lanterns.push(newLantern(true));
+  } else if (layoutH > 0 && Math.abs(H - layoutH) > 30) {
+    const k = H / layoutH;
+    for (let i = 0; i < lanterns.length; i++) lanterns[i].y = lanterns[i].y * k;   // 按高度等比缩放
+  }
+  layoutH = H;
+
+  petals = [];
+  for (let i = 0; i < 26; i++) petals.push(newPetal(true));
+}
+function newLantern(spread) {
+  const VH = visH();
+  return { x: rand(W * 0.06, W * 0.94), y: spread ? rand(VH * 0.25, VH * 0.95) : VH + rand(30, 160),
+           r: (W < 520 ? rand(13, 22) : rand(11, 19)),  // 手机上做大一点，否则看不见
+           v: rand(9, 22), ph: rand(0, TAU), amp: rand(8, 26), d: rand(0.4, 1),
+           wish: '', tip: 0 };
+}
+function newPetal(spread) {
+  return { x: rand(0, W), y: spread ? rand(0, H) : rand(-60, -10), s: rand(2.5, 6),
+           v: rand(12, 34), sp: rand(-18, 18), rot: rand(0, TAU), vr: rand(-1.4, 1.4), a: rand(0.25, 0.7) };
+}
+
+/* 光晕贴图缓存：预渲染一次反复用，比每帧新建径向渐变快几十倍（手机上尤其明显） */
+const _glow = new Map();
+function glow(color) {
+  let c = _glow.get(color);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, color);
+  rg.addColorStop(0.3, color);
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg;
+  g.beginPath(); g.arc(32, 32, 32, 0, TAU); g.fill();
+  _glow.set(color, c);
+  return c;
+}
+
+/* ================================================================
+   4 · 粒子：烟花 / 星轨
+================================================================ */
+function burst(x, y, count, pal, speed) {
+  const p = pal || theme.pal;
+  const sp = speed || 1;
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * TAU, v = rand(40, 250) * sp * (0.5 + Math.random() * 0.9);
+    sparks.push({ x, y, px: x, py: y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 30,
+                  life: rand(0.7, 1.9), age: 0, c: pick(p), w: rand(1, 2.6) });
+  }
+  if (sparks.length > 1000) sparks.splice(0, sparks.length - 1000);
+}
+function addTrail(x, y) {
+  trail.push({ x, y, age: 0, life: rand(1.1, 2.2), r: rand(1.6, 4.2), c: pick(theme.pal) });
+  if (trail.length > 460) trail.splice(0, trail.length - 460);
+}
+
+/* ================================================================
+   5 · 粒子拼字（把文字采成点，再让星尘飞过去组成）
+================================================================ */
+function sampleText(str, fontPx, weight) {
+  const c = document.createElement('canvas');
+  const g = c.getContext('2d');
+  c.width = Math.ceil(fontPx * str.length * 1.3) + 40;
+  c.height = Math.ceil(fontPx * 1.6);
+  g.fillStyle = '#fff';
+  g.font = (weight || '700') + ' ' + fontPx + 'px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(str, c.width / 2, c.height / 2);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  const step = Math.max(3, Math.round(fontPx / 16));
+  const pts = [];
+  for (let y = 0; y < c.height; y += step)
+    for (let x = 0; x < c.width; x += step)
+      if (d[(y * c.width + x) * 4 + 3] > 128) pts.push({ x: x - c.width / 2, y: y - c.height / 2 });
+  return pts;
+}
+let textFx = null;
+function formText(str, opts) {
+  const o = opts || {};
+  const fontPx = o.fontPx || clamp(W * 0.13, 44, 108);
+  const pts = sampleText(str, fontPx, o.weight);
+  if (!pts.length) return;
+  const cx = o.cx !== undefined ? o.cx : W / 2;
+  const cy = o.cy !== undefined ? o.cy : H * 0.34;
+  textFx = {
+    hold: o.hold || 2100, cx, cy,
+    items: pts.map(p => {
+      const sx = cx + p.x, sy = cy + p.y;
+      return { tx: sx, ty: sy, x: rand(0, W), y: rand(H, H * 1.3),
+               vx: 0, vy: 0, s: rand(0.8, 2), a: 0, c: o.color || theme.css.c2 };
+    })
+  };
+  if (textFx.items.length > 1400) textFx.items.length = 1400;
+}
+function updateTextFx(dt, t) {
+  if (!textFx) return;
+  const it = textFx.items;
+  for (const p of it) {
+    // 弹簧模型：越远拉得越狠 → 星尘自己飞过去
+    const k = 26, damp = 8.5;
+    p.vx += (p.tx - p.x) * k * dt; p.vy += (p.ty - p.y) * k * dt;
+    p.vx -= p.vx * damp * dt; p.vy -= p.vy * damp * dt;
+    if (!isFinite(p.vx) || !isFinite(p.vy)) { p.vx = p.vy = 0; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.a += (0.95 - p.a) * Math.min(1, dt * 3);
+  }
+  textFx.life = (textFx.life || 0) + dt * 1000;
+  if (textFx.life > textFx.hold) {           // 到点散开
+    for (const p of it) {
+      p.tx = p.x + rand(-260, 260); p.ty = p.y - rand(40, 240);
+      p.a -= dt * 0.9;
+    }
+    if (textFx.life > textFx.hold + 1400) textFx = null;
+  }
+}
+function drawTextFx() {
+  if (!textFx || !textFx.items.length) return;
+  const sp = glow(textFx.items[0].c);
+  for (const p of textFx.items) {
+    const a = clamp(p.a, 0, 1);
+    if (a <= 0.01) continue;
+    ctx.globalAlpha = a * 0.85;
+    const s = p.s * 6;
+    ctx.drawImage(sp, p.x - s, p.y - s, s * 2, s * 2);
+    ctx.fillStyle = '#fffdf0';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.s * 0.6, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ================================================================
+   6 · 声音（Web Audio 现场合成）
+================================================================ */
+let AC = null, soundOn = false;
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+}
+function tone(f, dur, vol, type) {
+  if (!AC || !soundOn) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'sine'; o.frequency.value = f;
+    g.gain.value = 0; o.connect(g); g.connect(AC.destination);
+    const t = AC.currentTime;
+    g.gain.linearRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch (e) {}
+}
+const SCALE = [392, 440, 523.25, 587.33, 659.25, 783.99, 880];
+function chime() { const f = pick(SCALE); tone(f, 1.6, 0.085, 'sine'); tone(f * 2, 1.1, 0.028, 'triangle'); }
+
+/* ================================================================
+   7 · 各图层
+================================================================ */
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
+  g.addColorStop(0, theme.bg[0]); g.addColorStop(0.45, theme.bg[1]); g.addColorStop(1, theme.bg[2]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.globalAlpha = 0.055;
+  ctx.translate(W * 0.5 - view.x * 2, H * 0.35 - view.y * 2);
+  ctx.rotate(-0.5);
+  const mg = ctx.createLinearGradient(-W, -60, W, 60);
+  mg.addColorStop(0, 'rgba(150,190,255,0)');
+  mg.addColorStop(0.5, 'rgba(200,220,255,.9)');
+  mg.addColorStop(1, 'rgba(150,190,255,0)');
+  ctx.fillStyle = mg; ctx.fillRect(-W, -70, W * 2, 140);
+  ctx.restore();
+}
+
+function drawStars(t) {
+  for (const s of stars) {
+    const tw = 0.55 + 0.45 * Math.sin(t * s.sp + s.ph);
+    const x = s.x + view.x * s.d * 14, y = s.y + view.y * s.d * 14;
+    ctx.globalAlpha = s.a * tw;
+    if (s.r > 1.1) {
+      const gg = ctx.createRadialGradient(x, y, 0, x, y, s.r * 6);
+      gg.addColorStop(0, 'rgba(240,248,255,.9)'); gg.addColorStop(1, 'rgba(240,248,255,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, s.r * 6, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = '#f6fbff';
+    ctx.beginPath(); ctx.arc(x, y, s.r, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawMoon(t) {
+  const pop = moon.pop;                       // 被点/被"发送"时鼓一下
+  const x = moon.x + view.x * 18, y = moon.y + view.y * 18;
+  const r = moon.r * (1 + pop * 0.06);
+
+  const halo = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * (4.2 + pop * 0.8));
+  halo.addColorStop(0, 'rgba(' + theme.halo + ',' + (0.30 + pop * 0.2) + ')');
+  halo.addColorStop(0.35, 'rgba(' + theme.halo + ',.10)');
+  halo.addColorStop(1, 'rgba(' + theme.halo + ',0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, r * (4.2 + pop * 0.8), 0, TAU); ctx.fill();
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.clip();
+  const mg = ctx.createRadialGradient(x - r * 0.34, y - r * 0.36, r * 0.12, x, y, r);
+  mg.addColorStop(0, theme.moon[0]); mg.addColorStop(0.42, theme.moon[1]);
+  mg.addColorStop(0.78, theme.moon[2]); mg.addColorStop(1, theme.moon[3]);
+  ctx.fillStyle = mg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+
+  const spots = [[-0.30, -0.18, 0.26], [0.22, 0.10, 0.34], [-0.05, 0.38, 0.20],
+                 [0.36, -0.30, 0.14], [0.02, -0.42, 0.12], [-0.42, 0.26, 0.13]];
+  ctx.globalAlpha = 0.15;
+  for (const s of spots) {
+    const g2 = ctx.createRadialGradient(x + s[0] * r, y + s[1] * r, 0, x + s[0] * r, y + s[1] * r, s[2] * r);
+    g2.addColorStop(0, 'rgba(' + theme.spot + ',.9)'); g2.addColorStop(1, 'rgba(' + theme.spot + ',0)');
+    ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x + s[0] * r, y + s[1] * r, s[2] * r, 0, TAU); ctx.fill();
+  }
+  // 月宫剪影：桂树 + 玉兔
+  ctx.globalAlpha = 0.12; ctx.fillStyle = '#8a6a30';
+  ctx.beginPath(); ctx.arc(x + r * 0.30, y + r * 0.30, r * 0.20, 0, TAU); ctx.fill();
+  ctx.fillRect(x + r * 0.285, y + r * 0.40, r * 0.03, r * 0.18);
+  ctx.beginPath(); ctx.ellipse(x - r * 0.34, y + r * 0.34, r * 0.11, r * 0.085, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x - r * 0.30, y + r * 0.24, r * 0.055, r * 0.05, 0, 0, TAU); ctx.fill();
+  ctx.fillRect(x - r * 0.31, y + r * 0.15, r * 0.022, r * 0.09);
+  ctx.fillRect(x - r * 0.26, y + r * 0.15, r * 0.022, r * 0.09);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  ctx.globalAlpha = 0.12 + 0.05 * Math.sin(t * 0.8) + pop * 0.3;
+  ctx.strokeStyle = 'rgba(' + theme.halo + ',1)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(x, y, r * 1.18, 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawClouds(dt) {
+  for (const c of clouds) {
+    c.x += c.v * dt;
+    if (c.x - c.w > W + 60) { c.x = -c.w - rand(40, 200); c.y = rand(H * 0.05, H * 0.62); }
+    const cx = c.x + view.x * 8, cy = c.y + view.y * 8 + Math.sin(c.wob += dt * 0.3) * 4;
+    ctx.save(); ctx.globalAlpha = c.a;
+    for (let i = -1; i <= 1; i++) {
+      const gx = cx + i * c.w * 0.26;
+      const g = ctx.createRadialGradient(gx, cy, 0, gx, cy, c.w * 0.42);
+      g.addColorStop(0, 'rgba(' + theme.cloud + ',.95)');
+      g.addColorStop(1, 'rgba(' + theme.cloud + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(gx, cy, c.w * 0.42, c.h, 0, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function drawLanterns(dt) {
+  for (let i = 0; i < lanterns.length; i++) {
+    const L = lanterns[i];
+    L.y -= L.v * dt; L.ph += dt * 1.1;
+    if (L.tip > 0) L.tip -= dt;                       // 提示倒计时
+    if (L.y < -90) lanterns[i] = newLantern(false);
+    const x = L.x + Math.sin(L.ph) * L.amp + view.x * L.d * 10;
+    const y = L.y + view.y * L.d * 10;
+    // 坐标一旦非法就直接重生，不让一个坏灯把整层画炸
+    if (!isFinite(x) || !isFinite(y) || !isFinite(L.r)) { lanterns[i] = newLantern(false); continue; }
+    L._x = x; L._y = y;                       // 记下来给点击命中用
+
+    const g = ctx.createRadialGradient(x, y, 0, x, y, L.r * 6);
+    g.addColorStop(0, 'rgba(' + theme.lantern + ',.75)');
+    g.addColorStop(0.3, 'rgba(' + theme.lantern + ',.24)');
+    g.addColorStop(1, 'rgba(' + theme.lantern + ',0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, L.r * 6, 0, TAU); ctx.fill();
+
+    ctx.fillStyle = 'rgba(' + theme.lantern + ',.97)';
+    ctx.beginPath(); ctx.ellipse(x, y, L.r * 0.62, L.r, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,252,235,.95)';
+    ctx.beginPath(); ctx.arc(x, y + L.r * 0.5, L.r * 0.22, 0, TAU); ctx.fill();
+
+    if (L.wish) {                            // 许过愿的灯：字带黑边，手机上看得清
+      ctx.save();
+      ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 7;
+      ctx.fillStyle = 'rgba(255,248,232,.98)';
+      ctx.fillText(L.wish, x, y - L.r * 1.8);
+      ctx.restore();
+    } else if (L.tip > 0) {                   // 刚放出来 → 给个「点我」提示
+      ctx.save();
+      ctx.globalAlpha = clamp(L.tip, 0, 1);
+      ctx.font = '12.5px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 7;
+      ctx.fillStyle = 'rgba(255,246,220,.95)';
+      ctx.fillText('👆 点我写心愿', x, y - L.r * 2.1);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawPetals(dt) {
+  for (let i = 0; i < petals.length; i++) {
+    const p = petals[i];
+    p.y += p.v * dt; p.x += p.sp * dt; p.rot += p.vr * dt;
+    if (p.y > H + 20) petals[i] = newPetal(false);
+    ctx.save(); ctx.globalAlpha = p.a;
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.fillStyle = theme.petal;
+    ctx.beginPath(); ctx.moveTo(0, -p.s);
+    ctx.quadraticCurveTo(p.s * 0.8, 0, 0, p.s);
+    ctx.quadraticCurveTo(-p.s * 0.8, 0, 0, -p.s);
+    ctx.fill(); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTrail(dt) {
+  for (let i = trail.length - 1; i >= 0; i--) {
+    const p = trail[i]; p.age += dt;
+    if (p.age > p.life) { trail.splice(i, 1); continue; }
+    const k = 1 - p.age / p.life;
+    const s = p.r * 4 * k;
+    ctx.globalAlpha = k * 0.85;
+    ctx.drawImage(glow(p.c), p.x - s, p.y - s, s * 2, s * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSparks(dt) {
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const p = sparks[i];
+    p.age += dt;
+    if (p.age >= p.life) { sparks.splice(i, 1); continue; }
+    p.px = p.x; p.py = p.y;
+    p.vy += 62 * dt;
+    p.vx *= (1 - 1.1 * dt); p.vy *= (1 - 1.1 * dt);
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const k = 1 - p.age / p.life;
+    ctx.globalAlpha = Math.max(0, k);
+    ctx.strokeStyle = p.c; ctx.lineWidth = p.w * k;
+    ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* 小兔彩蛋：偶尔从月亮下面蹦过去 */
+function launchRabbit() {
+  rabbit.on = true; rabbit.t = 0;
+  rabbit.dir = Math.random() < 0.5 ? 1 : -1;
+  rabbit.x = rabbit.dir > 0 ? -70 : W + 70;
+  rabbit.baseY = H * rand(0.72, 0.86);
+  rabbit.v = rand(85, 145);
+}
+function drawRabbit(dt) {
+  if (!rabbit.on) return;
+  rabbit.t += dt;
+  rabbit.x += rabbit.v * rabbit.dir * dt;
+  const hop = Math.abs(Math.sin(rabbit.t * 3.1)) * 26;
+  const x = rabbit.x, y = rabbit.baseY - hop;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(rabbit.dir, 1);
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = theme.petal;
+  ctx.beginPath(); ctx.ellipse(0, 0, 13, 8, 0, 0, TAU); ctx.fill();     // 身子
+  ctx.beginPath(); ctx.arc(11, -6, 5.5, 0, TAU); ctx.fill();           // 头
+  ctx.beginPath(); ctx.ellipse(12, -15, 2, 6, 0.25, 0, TAU); ctx.fill();// 耳朵
+  ctx.beginPath(); ctx.ellipse(15, -14, 2, 6, -0.15, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(-13, -1, 3.5, 0, TAU); ctx.fill();          // 尾巴
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  if (rabbit.x < -90 || rabbit.x > W + 90) rabbit.on = false;
+}
+
+/* 真实可视高度：手机上 layout 高度有时大于真正能看到的区域，
+   用 visualViewport 兜一下，免得东西全生成在屏幕外面 */
+function visH() {
+  try {
+    const vv = window.visualViewport;
+    if (vv && vv.height) return Math.min(H, vv.height);
+  } catch (e) {}
+  return H;
+}
+
+/* ================================================================
+   8 · 主循环（每一层单独 try：某层炸了也不连坐，错误直接显示在屏幕上）
+================================================================ */
+const errBox = document.createElement('div');
+errBox.style.cssText =
+  'position:fixed;left:8px;right:8px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:40;display:none;' +
+  'font:12px ui-monospace,Consolas,monospace;line-height:1.5;white-space:pre-wrap;' +
+  'color:#ffd9d9;background:rgba(130,22,32,.9);border:1px solid rgba(255,140,140,.5);border-radius:10px;padding:7px 11px';
+document.body.appendChild(errBox);
+let errShown = 0;
+function showErr(where, e) {
+  if (errShown++ > 4) return;
+  errBox.style.display = 'block';
+  errBox.textContent = '⚠ ' + where + '：' + (e && e.message ? e.message : e) + '\n（截图发我即可）';
+}
+errBox.addEventListener('click', () => { errBox.style.display = 'none'; });
+
+let last = performance.now(), elapsed = 0, rabbitTimer = rand(12, 22);
+function frame(now) {
+  let dt = 0;
+  try {
+    dt = (now - last) / 1000; last = now;
+    if (!isFinite(dt) || dt < 0) dt = 0;
+    if (dt > 0.05) dt = 0.05;
+    elapsed += dt;
+
+    if (!isFinite(view.x)) view.x = 0;
+    if (!isFinite(view.y)) view.y = 0;
+
+    rabbitTimer -= dt;
+    if (rabbitTimer <= 0) { if (!rabbit.on) launchRabbit(); rabbitTimer = rand(22, 46); }
+
+    view.x += (pointer.x - view.x) * Math.min(1, dt * 3);
+    view.y += (pointer.y - view.y) * Math.min(1, dt * 3);
+    moon.pop *= Math.max(0, 1 - dt * 2.2);
+  } catch (e) { showErr('循环', e); }
+
+  const layers = [
+    ['天空', () => drawSky()],
+    ['星星', () => drawStars(elapsed)],
+    ['云', () => drawClouds(dt)],
+    ['月亮', () => drawMoon(elapsed)],
+    ['拼字', () => { updateTextFx(dt); drawTextFx(); }],
+    ['孔明灯', () => drawLanterns(dt)],
+    ['小兔', () => drawRabbit(dt)],
+    ['花瓣', () => drawPetals(dt)],
+    ['星轨', () => drawTrail(dt)],
+    ['烟花', () => drawSparks(dt)]
+  ];
+  for (let i = 0; i < layers.length; i++) {
+    try { layers[i][1](); } catch (e) { showErr(layers[i][0], e); }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ================================================================
+   9 · 界面：诗词 / 祝福 / 主题 / 面板 / 弹窗 / 分享图
+================================================================ */
+const POEMS = [
+  ['但愿人长久，千里共婵娟', '苏轼 · 水调歌头'],
+  ['海上生明月，天涯共此时', '张九龄 · 望月怀远'],
+  ['今夜月明人尽望，不知秋思落谁家', '王建 · 十五夜望月'],
+  ['露从今夜白，月是故乡明', '杜甫 · 月夜忆舍弟'],
+  ['举杯邀明月，对影成三人', '李白 · 月下独酌']
+];
+let pi = -1;
+function nextPoem() {
+  pi = (pi + 1) % POEMS.length;
+  const el = $('poem');
+  el.style.opacity = 0;
+  setTimeout(() => {
+    el.innerHTML = POEMS[pi][0] + '<small>' + POEMS[pi][1] + '</small>';
+    el.style.opacity = .85;
+  }, 900);
+}
+setInterval(() => { try { nextPoem(); } catch (e) {} }, 5400);
+
+const WISHES = [
+  '{n}，今晚的月亮是今年最圆的一轮 —— 愿你想要的，都对着月亮许完愿就实现。',
+  '把最亮的这轮月亮送给你，{n}。愿你事事圆满，天天有好事发生。',
+  '{n}，千里共婵娟。无论隔多远，今晚我们都看着同一个月亮。',
+  '月圆人圆事事圆，{n}，愿你被这个世界温柔以待。',
+  '{n}，愿你今年的月饼都是最喜欢的馅，日子也是。',
+  '月亮替我照看你的窗，{n}，祝你中秋快乐，岁岁平安。',
+  '{n}，愿你所念皆如愿，所行皆坦途，月饼吃到撑也没人管你。',
+  '今夜月明人尽望 —— {n}，我把最好的秋色都留给你。'
+];
+let typingTimer = null;
+function typeWish(text) {
+  const el = $('wish');
+  clearInterval(typingTimer); el.innerHTML = '';
+  let i = 0;
+  const caret = document.createElement('span'); caret.className = 'caret';
+  el.appendChild(caret);
+  typingTimer = setInterval(() => {
+    if (i >= text.length) { clearInterval(typingTimer); caret.remove(); return; }
+    caret.remove();
+    el.appendChild(document.createTextNode(text[i++]));
+    el.appendChild(caret);
+    if (i % 3 === 0) tone(rand(700, 1200), 0.16, 0.022, 'sine');
+  }, 58);
+}
+function currentName() { return ($('nameInput').value || '').trim().slice(0, 12); }
+
+function doWish() {
+  const raw = currentName(), who = raw || '你';
+  typeWish(pick(WISHES).replace('{n}', who));
+  const seal = $('seal');
+  seal.classList.remove('on');
+  setTimeout(() => seal.classList.add('on'), 240);
+
+  // 输入卡只留第一次：点亮后收起来（名字已记住，不再问）
+  const card = $('card'); if (card) card.classList.add('gone');
+  const again = $('again'); if (again) again.classList.add('on');
+
+  // 星尘拼出名字（太长就拼"中秋快乐"）
+  const shown = raw ? (raw.length <= 6 ? raw : '中秋快乐') : '中秋快乐';
+  formText(shown, { cy: H * 0.3, fontPx: clamp(W / (shown.length * 0.85), 34, 96), color: theme.css.c2 });
+
+  burst(W * 0.5, H * 0.42, 120);
+  setTimeout(() => burst(W * 0.3, H * 0.34, 60), 220);
+  setTimeout(() => burst(W * 0.7, H * 0.3, 60), 430);
+  chime(); setTimeout(chime, 240);
+  try { history.replaceState(null, '', '?to=' + encodeURIComponent(raw)); } catch (e) {}
+  toast('祝福已点亮 · 拖动屏幕画条星轨试试');
+}
+
+/* ---------- 弹窗 ---------- */
+let modalOpenedAt = 0;                       // 弹窗打开时刻：用来吃掉手机上的“幽灵点击”
+function openModal(html) {
+  $('modalBox').innerHTML = html;
+  $('modal').classList.add('on');
+  modalOpenedAt = performance.now();
+}
+function closeModal() { $('modal').classList.remove('on'); }
+/* 手机上点完灯，浏览器还会在手指位置补发一个 click，
+   正好砸在弹窗背景（甚至按钮）上 —— 弹窗刚出就被关掉，但键盘已经开始弹了。
+   所以在打开后 600ms 内，把落在弹窗里的 click 全部吃掉。 */
+$('modal').addEventListener('click', e => {
+  if (performance.now() - modalOpenedAt < 600) { e.stopPropagation(); e.preventDefault(); return; }
+  if (e.target.id === 'modal') closeModal();
+}, true);                                    // 捕获阶段，抢在按钮之前拦下
+
+/* ---------- 孔明灯许愿 ---------- */
+function lanternWish(L) {
+  openModal(
+    '<h3>🏮 写一句心愿</h3>' +
+    '<input id="wsInput" maxlength="14" placeholder="愿……" style="text-align:center">' +
+    '<div class="btns"><button class="ghost" onclick="closeModal()">算了</button>' +
+    '<button id="wsOk">放上去</button></div>'
+  );
+  const inp = $('wsInput');
+  setTimeout(() => { try { inp.focus(); if (inp.select) inp.select(); } catch (e) {} }, 160);
+  const go = () => {
+    const v = inp.value.trim().slice(0, 14);
+    L.wish = v || '心想事成';
+    L.v = rand(13, 20);                 // 带心愿的灯慢慢升，能把那行字看清楚
+    L.r = Math.max(L.r, 15);
+    L.tip = 0;
+    closeModal();
+    burst(L._x || W / 2, L._y || H / 2, 46);
+    chime();
+    toast('灯带着你的心愿飞走了 🏮');
+  };
+  $('wsOk').onclick = go;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
+/* ---------- 生成分享图 ---------- */
+function buildCard(name, wish) {
+  const CW = 900, CH = 1400;
+  const c = document.createElement('canvas');
+  c.width = CW; c.height = CH;
+  const g = c.getContext('2d');
+
+  const bg = g.createLinearGradient(0, 0, CW * 0.4, CH);
+  bg.addColorStop(0, theme.bg[0]); bg.addColorStop(0.45, theme.bg[1]); bg.addColorStop(1, theme.bg[2]);
+  g.fillStyle = bg; g.fillRect(0, 0, CW, CH);
+
+  for (let i = 0; i < 220; i++) {              // 星
+    const x = Math.random() * CW, y = Math.random() * CH * 0.75, r = rand(0.6, 2.2);
+    g.globalAlpha = rand(0.2, 0.9); g.fillStyle = '#fff';
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  }
+  g.globalAlpha = 1;
+
+  const mx = CW * 0.5, my = 430, mr = 150;     // 月亮
+  const halo = g.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 3.6);
+  halo.addColorStop(0, 'rgba(' + theme.halo + ',.34)');
+  halo.addColorStop(1, 'rgba(' + theme.halo + ',0)');
+  g.fillStyle = halo; g.beginPath(); g.arc(mx, my, mr * 3.6, 0, TAU); g.fill();
+  const mgn = g.createRadialGradient(mx - mr * 0.34, my - mr * 0.36, mr * 0.12, mx, my, mr);
+  mgn.addColorStop(0, theme.moon[0]); mgn.addColorStop(0.42, theme.moon[1]);
+  mgn.addColorStop(0.78, theme.moon[2]); mgn.addColorStop(1, theme.moon[3]);
+  g.fillStyle = mgn; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+
+  g.textAlign = 'center';
+  g.fillStyle = theme.css.c1;
+  g.font = '600 96px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillText('中秋快乐', CW / 2, 740);
+  g.font = '30px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillStyle = theme.css.muted;
+  g.fillText('2026 · 八月十五', CW / 2, 800);
+
+  if (name) {
+    g.font = '600 44px "PingFang SC","Microsoft YaHei",sans-serif';
+    g.fillStyle = theme.css.c2;
+    g.fillText('致 ' + name, CW / 2, 885);
+  }
+
+  // 祝语自动换行
+  g.font = '34px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillStyle = '#fff6e2';
+  const maxW = CW - 160;
+  let line = '', y = name ? 960 : 900;
+  const txt = wish || '愿你所念皆如愿，所行皆坦途。';
+  for (const ch of txt) {
+    if (g.measureText(line + ch).width > maxW) { g.fillText(line, CW / 2, y); y += 52; line = ch; }
+    else line += ch;
+    if (y > 1230) break;
+  }
+  g.fillText(line, CW / 2, y);
+
+  g.font = '24px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillStyle = 'rgba(255,255,255,.35)';
+  g.fillText('—— 想你了，就抬头看看月亮 ——', CW / 2, 1330);
+  return c.toDataURL('image/png');
+}
+$('btnCard').addEventListener('click', () => {
+  try {
+    const wishEl = $('wish');
+    const wish = wishEl ? wishEl.textContent.slice(0, 60) : '';
+    const url = buildCard(currentName(), wish);
+    openModal(
+      '<h3>📸 你的中秋卡</h3>' +
+      '<img src="' + url + '" alt="中秋卡">' +
+      '<div class="tip">手机：长按图片 → 保存/转发<br>电脑：点下面按钮下载</div>' +
+      '<div class="btns"><button class="ghost" onclick="closeModal()">关闭</button>' +
+      '<a id="dlCard" download="中秋快乐.png" href="' + url + '" style="flex:1;display:flex">' +
+      '<button style="width:100%">下载图片</button></a></div>'
+    );
+    chime();
+  } catch (e) { toast('生成失败：' + e.message); }
+});
+
+/* ---------- 声音 / 主题 / 链接 / 纯净 ---------- */
+$('btnSound').addEventListener('click', () => {
+  initAudio(); soundOn = !soundOn;
+  if (soundOn && AC && AC.state === 'suspended') { try { AC.resume(); } catch (e) {} }
+  $('btnSound').textContent = soundOn ? '🔊' : '🔇';
+  $('btnSound').classList.toggle('on', soundOn);
+  if (soundOn) chime();
+});
+let themeIdx = 0;
+$('btnTheme').addEventListener('click', () => { themeIdx++; applyTheme(themeIdx); moon.pop = .6; });
+
+/* 放孔明灯：一次放一批，从底下升上去 */
+function releaseLanterns(n) {
+  const VH = visH();
+  const batch = [];
+  for (let i = 0; i < n; i++) {
+    const L = newLantern(false);
+    // 直接放在真正看得见的那块区域里往上飘
+    L.y = VH * rand(0.42, 0.86) + i * 6;
+    L.v = rand(26, 46);
+    lanterns.push(L); batch.push(L);
+  }
+  if (lanterns.length > 42) lanterns.splice(0, lanterns.length - 42);   // 上限保护
+  batch.sort((a, b) => b.y - a.y);
+  if (batch[0]) batch[0].tip = 3.4;        // 给最靠下的那盏挂个 3 秒「点我」提示
+
+  // 看得见的反馈：底部一片柔光 + 中央爆一下（就算灯再小，也知道放出去了）
+  for (let i = 0; i < 24; i++) {
+    trail.push({ x: W * rand(0.15, 0.85), y: VH * rand(0.5, 0.95), age: 0, life: rand(0.7, 1.5), r: rand(2, 4.6), c: theme.pal[0] });
+  }
+  burst(W * 0.5, VH * 0.6, 46, null, 0.6);
+  chime();
+
+  // 自检：万一灯其实都在视野外，直接把情况显示出来（方便截图发我）
+  setTimeout(() => {
+    const inside = lanterns.filter(L => L.y > -20 && L.y < VH).length;
+    if (!inside) showErr('自检', '灯在视野外  H=' + Math.round(H) + ' VH=' + Math.round(VH) + ' W=' + Math.round(W));
+  }, 700);
+}
+$('btnLantern').addEventListener('click', () => {
+  releaseLanterns(9);
+  toast('放灯了 · 点任意一盏，可以写心愿');
+});
+
+$('btnPure').addEventListener('click', () => {
+  document.body.classList.toggle('pure');
+  const on = document.body.classList.contains('pure');
+  $('btnPure').classList.toggle('on', on);
+  toast(on ? '纯净模式：只剩月亮和诗（点右下角眼睛退出）' : '回来了');
+});
+
+
+$('btnWish').addEventListener('click', doWish);
+$('again').addEventListener('click', doWish);
+$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') doWish(); });
+
+/* ================================================================
+   10 · 交互：拖动画星轨 / 点击放烟花 / 点灯许愿 / 摇一摇 / 键盘
+================================================================ */
+let down = null, moved = 0;
+let moonHits = 0, moonHitTimer = null;
+
+window.addEventListener('pointermove', e => {
+  pointer.x = (e.clientX / window.innerWidth - 0.5) * 2;
+  pointer.y = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+window.addEventListener('pointerdown', e => {
+  if (e.target.closest('button,input,.card,.modal,a')) return;
+  // 按下就先判灯：手机上手指盖着目标、灯还在飘，等抬手再判很容易判丢
+  const L = lanternAt(e.clientX, e.clientY);
+  if (L) { lanternWish(L); return; }
+  down = { x: e.clientX, y: e.clientY }; moved = 0;
+  addTrail(e.clientX, e.clientY);
+});
+
+/* 找手指/鼠标底下有没有灯：命中半径给足（手指不是鼠标） */
+function lanternAt(x, y) {
+  let best = null, bestD = 1e9;
+  for (const L of lanterns) {
+    if (L._x === undefined) continue;
+    const d = Math.hypot(x - L._x, y - L._y);
+    const hit = Math.max(L.r * 4, 46);
+    if (d < hit && d < bestD) { best = L; bestD = d; }
+  }
+  return best;
+}
+
+window.addEventListener('pointermove', e => {
+  if (!down) return;
+  moved = Math.max(moved, Math.hypot(e.clientX - down.x, e.clientY - down.y));
+  addTrail(e.clientX, e.clientY);
+  if (moved > 14 && Math.random() < 0.35) tone(rand(900, 1600), 0.09, 0.02, 'sine');
+});
+
+function endPointer(e) {                        // pointerup / pointercancel 都走这里
+  if (!down) return;
+  const sx = down.x, sy = down.y;
+  const dist = Math.hypot(e.clientX - sx, e.clientY - sy);
+  down = null;
+
+  if (dist < 12) {
+    const md = Math.hypot(e.clientX - moon.x, e.clientY - moon.y);
+    if (md < moon.r * 1.15) {                  // 点月亮
+      moon.pop = 1; chime();
+      clearTimeout(moonHitTimer);
+      moonHits++;
+      moonHitTimer = setTimeout(() => moonHits = 0, 1500);
+      if (moonHits >= 3) { moonHits = 0; burst(moon.x, moon.y, 90, null, 0.9); }   // 连点三次撒一把金粉
+      return;
+    }
+    burst(e.clientX, e.clientY, 46); chime();
+  } else {
+    burst(sx, (sy + e.clientY) / 2, 30, null, 0.7);      // 星轨收尾爆一朵
+  }
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);    // iOS 偶尔发 cancel，不接住的话这一点就白点了
+window.addEventListener('dblclick', e => {
+  for (let i = 0; i < 3; i++) setTimeout(() => burst(rand(W * .2, W * .8), rand(H * .18, H * .5), 70), i * 240);
+  chime();
+});
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); burst(rand(W * .25, W * .75), rand(H * .2, H * .5), 70); chime(); }
+  if (e.key === '1' || e.key === '2' || e.key === '3') { themeIdx = +e.key - 1; applyTheme(themeIdx); moon.pop = .6; }
+  if (e.key.toLowerCase() === 'h') $('btnPure').click();
+  if (e.key.toLowerCase() === 'r') launchRabbit();
+});
+// 手机摇一摇：花瓣爆散
+let shakeThresh = 1600, lastShake = 0;
+window.addEventListener('devicemotion', e => {
+  try {
+    const a = e.accelerationIncludingGravity; if (!a) return;
+    const m = Math.abs(a.x || 0) + Math.abs(a.y || 0) + Math.abs(a.z || 0);
+    const now = Date.now();
+    if (m > shakeThresh && now - lastShake > 1200) {
+      lastShake = now;
+      for (const p of petals) { p.v = rand(60, 160); p.sp = rand(-90, 90); }
+      burst(W / 2, H / 2, 60, null, 0.8);
+      chime(); toast('摇一摇 · 桂花散了一屏');
+    }
+  } catch (err) {}
+});
+
+/* ================================================================
+   11 · 启动
+================================================================ */
+const intro = $('intro');
+intro.addEventListener('click', async () => {
+  initAudio(); soundOn = true;
+  $('btnSound').textContent = '🔊'; $('btnSound').classList.add('on');
+  if (AC && AC.state === 'suspended') { try { AC.resume(); } catch (e) {} }
+  // 手机：请求"摇一摇"权限（iOS 必须由点击触发）
+  try {
+    if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission) {
+      await DeviceMotionEvent.requestPermission();
+    }
+  } catch (e) {}
+  intro.classList.add('hide');
+  setTimeout(() => {
+    burst(W * 0.5, H * 0.36, 90);
+    setTimeout(() => burst(W * 0.26, H * 0.44, 55), 300);
+    setTimeout(() => burst(W * 0.74, H * 0.4, 55), 560);
+    formText('中秋快乐', { cy: H * 0.3, hold: 2600 });   // 开场：星尘拼字
+    nextPoem();
+  }, 320);
+});
+
+(function boot() {
+  resize();
+  layout();                     // resize 不再顺手重排，这里手动调一次（否则天空是空的）
+  lastW = W; lastH = H;
+  applyTheme(0);
+  const q = new URLSearchParams(location.search).get('to');
+  if (q) {                                  // 网址里带了名字：直接收掉输入卡
+    $('nameInput').value = q.slice(0, 12);
+    const c = $('card'); if (c) c.classList.add('gone');
+    const a = $('again'); if (a) a.classList.add('on');
+  }
+  requestAnimationFrame(frame);
+  nextPoem();
+})();
+</script>
+</body>
+</html>
